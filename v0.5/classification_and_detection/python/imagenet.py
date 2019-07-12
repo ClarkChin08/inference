@@ -4,6 +4,7 @@ implementation of imagenet dataset
 
 # pylint: disable=unused-argument,missing-docstring
 
+import cv2
 import logging
 import os
 import re

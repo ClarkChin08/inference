@@ -4,6 +4,7 @@ dataset related classes and methods
 
 # pylint: disable=unused-argument,missing-docstring
 
+import cv2
 import logging
 import sys
 import time
@@ -148,9 +149,8 @@ def center_crop(img, out_height, out_width):
     right = int((width + out_width) / 2)
     top = int((height - out_height) / 2)
     bottom = int((height + out_height) / 2)
-
-    crop_img = img[top : bottom, left : right]
-    return crop_img
+    img = img[top : bottom, left : right]
+    return img
 
 
 def resize_with_aspectratio(img, out_height, out_width, scale=87.5, inter_pol=cv2.INTER_LINEAR):
@@ -163,8 +163,8 @@ def resize_with_aspectratio(img, out_height, out_width, scale=87.5, inter_pol=cv
     else:
         h = new_height
         w = int(new_width * width / height)
-    resized_img = cv2.resize(img, (w, h), interpolation = inter_pol)
-    return resized_img
+    img = cv2.resize(img, (w, h), interpolation = inter_pol)
+    return img
 
 
 def pre_process_vgg(img, dims=None, need_transpose=False):
