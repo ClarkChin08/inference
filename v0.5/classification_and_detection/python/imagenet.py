@@ -11,6 +11,7 @@ import time
 
 import numpy as np
 from PIL import Image
+import cv2
 
 import dataset
 
@@ -60,10 +61,10 @@ class Imagenet(dataset.Dataset):
                 if not os.path.exists(dst + ".npy"):
                     # cache a preprocessed version of the image
                     # TODO: make this multi threaded ?
-                    with Image.open(src) as img_org:
-                        processed = self.pre_process(img_org, need_transpose=self.need_transpose, dims=self.image_size)
-                        np.save(dst, processed)
-
+                    img_org = cv2.imread(src)
+                    processed = self.pre_process(img_org, need_transpose=self.need_transpose, dims=self.image_size)
+                    np.save(dst, processed)
+                
                 self.image_list.append(image_name)
                 self.label_list.append(int(label))
 
