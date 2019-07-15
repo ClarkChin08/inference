@@ -30,6 +30,8 @@ class SystemUnderTestNull : public mlperf::SystemUnderTest {
     }
     mlperf::QuerySamplesComplete(responses.data(), responses.size());
   }
+
+  void FlushQueries() override {}
   void ReportLatencyResults(
       const std::vector<mlperf::QuerySampleLatency>& latencies_ns) override {}
 
@@ -43,9 +45,9 @@ class QuerySampleLibraryNull : public mlperf::QuerySampleLibrary {
   ~QuerySampleLibraryNull() = default;
   const std::string& Name() const override { return name_; }
 
-  const size_t TotalSampleCount() override { return 1024 * 1024; }
+  size_t TotalSampleCount() override { return 1024 * 1024; }
 
-  const size_t PerformanceSampleCount() override { return 1024; }
+  size_t PerformanceSampleCount() override { return 1024; }
 
   void LoadSamplesToRam(
       const std::vector<mlperf::QuerySampleIndex>& samples) override {
@@ -88,6 +90,8 @@ class SystemUnderTestNullStdAsync : public mlperf::SystemUnderTest {
       mlperf::QuerySamplesComplete(responses.data(), responses.size());
     }));
   }
+
+  void FlushQueries() override {}
   void ReportLatencyResults(
       const std::vector<mlperf::QuerySampleLatency>& latencies_ns) override {}
 
@@ -140,6 +144,7 @@ class SystemUnderTestNullPool : public mlperf::SystemUnderTest {
     samples_.insert(samples_.end(), samples.begin(), samples.end());
   }
 
+  void FlushQueries() override {}
   void ReportLatencyResults(
       const std::vector<mlperf::QuerySampleLatency>& latencies_ns) override {}
 

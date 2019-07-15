@@ -452,34 +452,30 @@ if __name__ == "__main__":
         runner = SingleStreamGNMTRunner(gnmt_model, store_translation=args.store_translation, verbose=args.verbose, outdir=outdir)
         
         # Specify exactly how many queries need to be made
-        settings.enable_spec_overrides = True
-        settings.override_min_query_count = 100
-        settings.override_max_query_count = 100
+        settings.min_query_count = 100
+        settings.max_query_count = 100
 
     elif args.scenario == "Offline":
         runner = GNMTRunner(gnmt_model, verbose=args.verbose)
         
         # Specify exactly how many queries need to be made
-        settings.enable_spec_overrides = True
-        settings.override_min_query_count = 1
-        settings.override_max_query_count = 1
+        settings.min_query_count = 1
+        settings.max_query_count = 1
 
     elif args.scenario == "MultiStream":
         runner = GNMTRunner(gnmt_model, verbose=args.verbose)
         
         # Specify exactly how many queries need to be made
-        settings.enable_spec_overrides = True
-        settings.override_min_query_count = 100
-        settings.override_max_query_count = 100
+        settings.min_query_count = 100
+        settings.max_query_count = 100
         settings.multi_stream_samples_per_query = 8
 
     elif args.scenario == "Server":
         runner = ServerGNMTRunner(gnmt_model, verbose=args.verbose)
         
         # Specify exactly how many queries need to be made
-        settings.enable_spec_overrides = True
-        settings.override_min_query_count = 20
-        settings.override_max_query_count = 100
+        settings.min_query_count = 20
+        settings.max_query_count = 100
 
     else:
         print("Invalid scenario selected")
@@ -491,11 +487,12 @@ if __name__ == "__main__":
     total_queries = 3003 # Maximum sample ID + 1
     perf_queries = 3003   # Select the same subset of $perf_queries samples
 
-    sut = mlperf_loadgen.ConstructSUT(runner.enqueue, process_latencies)
+    sut = mlperf_loadgen.ConstructSUT(runner.enqueue, flush_queries, process_latencies)
     qsl = mlperf_loadgen.ConstructQSL(
         total_queries, perf_queries, runner.load_samples_to_ram, runner.unload_samples_from_ram)
 
     mlperf_loadgen.StartTest(sut, qsl, settings)
+    runner.finish()
     mlperf_loadgen.DestroyQSL(qsl)
     mlperf_loadgen.DestroySUT(sut)
 

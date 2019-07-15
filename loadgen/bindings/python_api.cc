@@ -30,6 +30,7 @@ namespace mlperf {
 namespace {
 
 using IssueQueryCallback = std::function<void(std::vector<QuerySample>)>;
+using FlushQueriesCallback = std::function<void()>;
 using ReportLatencyResultsCallback = std::function<void(std::vector<int64_t>)>;
 
 // Forwards SystemUnderTest calls to relevant callbacks.
@@ -37,9 +38,11 @@ class SystemUnderTestTrampoline : public SystemUnderTest {
  public:
   SystemUnderTestTrampoline(
       std::string name, IssueQueryCallback issue_cb,
+      FlushQueriesCallback flush_queries_cb,
       ReportLatencyResultsCallback report_latency_results_cb)
       : name_(std::move(name)),
         issue_cb_(issue_cb),
+        flush_queries_cb_(flush_queries_cb),
         report_latency_results_cb_(report_latency_results_cb) {}
   ~SystemUnderTestTrampoline() override = default;
 
@@ -50,6 +53,8 @@ class SystemUnderTestTrampoline : public SystemUnderTest {
     issue_cb_(samples);
   }
 
+  void FlushQueries() override { flush_queries_cb_(); }
+
   void ReportLatencyResults(
       const std::vector<QuerySampleLatency>& latencies_ns) override {
     pybind11::gil_scoped_acquire gil_acquirer;
@@ -59,6 +64,7 @@ class SystemUnderTestTrampoline : public SystemUnderTest {
  private:
   std::string name_;
   IssueQueryCallback issue_cb_;
+  FlushQueriesCallback flush_queries_cb_;
   ReportLatencyResultsCallback report_latency_results_cb_;
 };
 
@@ -83,8 +89,8 @@ class QuerySampleLibraryTrampoline : public QuerySampleLibrary {
   ~QuerySampleLibraryTrampoline() override = default;
 
   const std::string& Name() const override { return name_; }
-  const size_t TotalSampleCount() { return total_sample_count_; }
-  const size_t PerformanceSampleCount() { return performance_sample_count_; }
+  size_t TotalSampleCount() { return total_sample_count_; }
+  size_t PerformanceSampleCount() { return performance_sample_count_; }
 
   void LoadSamplesToRam(const std::vector<QuerySampleIndex>& samples) override {
     pybind11::gil_scoped_acquire gil_acquirer;
@@ -109,9 +115,10 @@ class QuerySampleLibraryTrampoline : public QuerySampleLibrary {
 namespace py {
 
 uintptr_t ConstructSUT(IssueQueryCallback issue_cb,
+                       FlushQueriesCallback flush_queries_cb,
                        ReportLatencyResultsCallback report_latency_results_cb) {
   SystemUnderTestTrampoline* sut = new SystemUnderTestTrampoline(
-      "PySUT", issue_cb, report_latency_results_cb);
+      "PySUT", issue_cb, flush_queries_cb, report_latency_results_cb);
   return reinterpret_cast<uintptr_t>(sut);
 }
 
@@ -187,33 +194,29 @@ PYBIND11_MODULE(mlperf_loadgen, m) {
       .def_readwrite("mode", &TestSettings::mode)
       .def_readwrite("single_stream_expected_latency_ns",
                      &TestSettings::single_stream_expected_latency_ns)
+      .def_readwrite("multi_stream_target_qps",
+                     &TestSettings::multi_stream_target_qps)
+      .def_readwrite("multi_stream_target_latency_ns",
+                     &TestSettings::multi_stream_target_latency_ns)
       .def_readwrite("multi_stream_samples_per_query",
                      &TestSettings::multi_stream_samples_per_query)
+      .def_readwrite("multi_stream_max_async_queries",
+                     &TestSettings::multi_stream_max_async_queries)
       .def_readwrite("server_target_qps", &TestSettings::server_target_qps)
+      .def_readwrite("server_target_latency_ns",
+                     &TestSettings::server_target_latency_ns)
       .def_readwrite("server_coalesce_queries",
                      &TestSettings::server_coalesce_queries)
       .def_readwrite("offline_expected_qps",
                      &TestSettings::offline_expected_qps)
-      .def_readwrite("enable_spec_overrides",
-                     &TestSettings::enable_spec_overrides)
-      .def_readwrite("override_target_latency_ns",
-                     &TestSettings::override_target_latency_ns)
-      .def_readwrite("override_multi_stream_max_async_queries",
-                     &TestSettings::override_multi_stream_max_async_queries)
-      .def_readwrite("override_min_duration_ms",
-                     &TestSettings::override_min_duration_ms)
-      .def_readwrite("override_max_duration_ms",
-                     &TestSettings::override_max_duration_ms)
-      .def_readwrite("override_min_query_count",
-                     &TestSettings::override_min_query_count)
-      .def_readwrite("override_max_query_count",
-                     &TestSettings::override_max_query_count)
-      .def_readwrite("override_qsl_rng_seed",
-                     &TestSettings::override_qsl_rng_seed)
-      .def_readwrite("override_sample_index_rng_seed",
-                     &TestSettings::override_sample_index_rng_seed)
-      .def_readwrite("override_schedule_rng_seed",
-                     &TestSettings::override_schedule_rng_seed);
+      .def_readwrite("min_duration_ms", &TestSettings::min_duration_ms)
+      .def_readwrite("max_duration_ms", &TestSettings::max_duration_ms)
+      .def_readwrite("min_query_count", &TestSettings::min_query_count)
+      .def_readwrite("max_query_count", &TestSettings::max_query_count)
+      .def_readwrite("qsl_rng_seed", &TestSettings::qsl_rng_seed)
+      .def_readwrite("sample_index_rng_seed",
+                     &TestSettings::sample_index_rng_seed)
+      .def_readwrite("schedule_rng_seed", &TestSettings::schedule_rng_seed);
 
   pybind11::enum_<LoggingMode>(m, "LoggingMode")
       .value("AsyncPoll", LoggingMode::AsyncPoll)

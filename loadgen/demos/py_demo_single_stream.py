@@ -55,6 +55,9 @@ def issue_query(query_samples):
             args=[query_samples]).start()
 
 
+def flush_queries(): pass
+
+
 def process_latencies(latencies_ns):
     print("Average latency: ")
     print(numpy.mean(latencies_ns))
@@ -69,12 +72,11 @@ def main(argv):
     settings.scenario = mlperf_loadgen.TestScenario.SingleStream
     settings.mode = mlperf_loadgen.TestMode.AccuracyOnly
     settings.single_stream_expected_latency_ns = 1000000;
-    settings.enable_spec_overrides = True
-    settings.override_target_latency_ns = 100000000
-    settings.override_min_query_count = 100
-    settings.override_min_duration_ms = 10000
+    settings.min_query_count = 100
+    settings.min_duration_ms = 10000
 
-    sut = mlperf_loadgen.ConstructSUT(issue_query, process_latencies)
+    sut = mlperf_loadgen.ConstructSUT(
+        issue_query, flush_queries, process_latencies)
     qsl = mlperf_loadgen.ConstructQSL(
         1024, 128, load_samples_to_ram, unload_samples_from_ram)
     mlperf_loadgen.StartTest(sut, qsl, settings)
